@@ -50,35 +50,30 @@ int Server::run() {
     }
     std::cout << "Got one" << std::endl;
 
+    handle_client(read_socket);
 
-    auto result = peter::shared::my_message{};
-
-    while (true) {
-
-        // read_socket is now a socket for an actual connection. Read some stuff
-        auto read_bytes = recv(read_socket, &result, sizeof(result), 0);
-        if (read_bytes < 0) {
-            std::cout << "recv didnt work: " << errno << std::endl;
-            return errno;
-        }
-        std::cout << result.message << std::endl;
-    }
-
-
-
-    if (shutdown(read_socket, SHUT_RDWR) == -1) {
-        std::cout << "shutdown didnt work: " << errno << std::endl;
-        close(read_socket);
-        close(my_socket);
-        return errno;
-    }
-    close(read_socket);
     close(my_socket);
-
 }
 
 void Server::handle_client(int socket) {
-
+    auto result = peter::shared::my_message{};
+    while (true) {
+        // read_socket is now a socket for an actual connection. Read some stuff
+        auto read_bytes = recv(socket, &result, sizeof(result), 0);
+        if (read_bytes < 0) {
+            std::cout << "recv didnt work: " << errno << std::endl;
+            return;
+        }
+        else if (read_bytes == 0) {
+            // disconnect, I think
+            if (shutdown(socket, SHUT_RDWR) == -1) {
+                std::cout << "shutdown didnt work: " << errno << std::endl;
+            }
+            close(socket);
+            return;
+        }
+        std::cout << result.message << std::endl;
+    }
 }
 
 void Server::broadcast(const peter::shared::my_message message) {
