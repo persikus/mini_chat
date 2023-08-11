@@ -13,16 +13,22 @@
 
 
 int main() {
-    using namespace std::chrono_literals;
 
-    // inet socket setup
-    auto socket_addr = sockaddr_in();
-    socket_addr.sin_family = AF_INET;
-    socket_addr.sin_port = htons(8900);
-    socket_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    auto client = Client("Peter", "127.0.0.1", 8900);
+    client.run();
 
+    return 0;
+}
 
-    const auto *addr_ptr = reinterpret_cast<const sockaddr *>(&socket_addr);
+Client::Client(std::string &&name, std::string &&ip, short port) : name(name) {
+    socket_address.sin_family = AF_INET;
+    socket_address.sin_port = htons(port);
+    socket_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    // Put URL into the socket addr
+    auto res = inet_pton(AF_INET, "127.0.0.1", &socket_address.sin_addr);
+}
+
+int Client::run() {
 
     auto my_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -31,14 +37,7 @@ int main() {
         return errno;
     }
 
-    // Put URL into the socket addr
-    auto res = inet_pton(AF_INET, "127.0.0.1", &socket_addr.sin_addr);
-
-    if (res <= 0) {
-        std::cout << "address not fine" << std::endl;
-    }
-
-    if (connect(my_socket, addr_ptr, sizeof socket_addr) < 0) {
+    if (connect(my_socket, addr_ptr, sizeof socket_address) < 0) {
         std::cout << "connect failed: " << errno << std::endl;
         close(my_socket);
         return errno;
@@ -51,6 +50,5 @@ int main() {
     std::cout << "sent " << bytes_sent << " bytes" << std::endl;
 
     close(my_socket);
-
     return 0;
 }
