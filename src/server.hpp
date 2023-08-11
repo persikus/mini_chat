@@ -11,12 +11,11 @@ public:
 
 private:
 
-    void handle_client(int socket);
+    static void* handle_client(void* socket);
 
     void broadcast(peter::shared::my_message message);
 
     sockaddr_in socket_address{};
     const sockaddr *addr_ptr = reinterpret_cast<const sockaddr *>(&socket_address);
-    std::vector<int> client_sockets;
 
 };

@@ -42,35 +42,44 @@ int Server::run() {
     struct sockaddr_in their_addr{}; // connector’s address
     socklen_t sin_size; // size of sockaddr
 
+    std::vector<pthread_t> client_threads;
+    std::vector<int> client_sockets;
 
-    auto read_socket = -1;
-    std::cout << "Waiting for connection.." << std::endl;
-    if ((read_socket = accept(my_socket, (struct sockaddr *) &their_addr, &sin_size)) < 0) {
-        std::cout << "accept deque didnt work: " << errno << std::endl;
+    while (true) {
+        auto read_socket = -1;
+        std::cout << "Waiting for connection.." << std::endl;
+        if ((read_socket = accept(my_socket, (struct sockaddr *) &their_addr, &sin_size)) < 0) {
+            std::cout << "accept deque didnt work: " << errno << std::endl;
+            break;
+        }
+        std::cout << "Got one" << std::endl;
+
+        client_threads.emplace_back();
+        client_sockets.push_back(read_socket);
+
+        pthread_create(&client_threads.back(), nullptr, handle_client, &client_sockets.back());
+
     }
-    std::cout << "Got one" << std::endl;
-
-    handle_client(read_socket);
 
     close(my_socket);
 }
 
-void Server::handle_client(int socket) {
+void *Server::handle_client(void *args) {
+    auto socket = *((int *) args);
     auto result = peter::shared::my_message{};
     while (true) {
         // read_socket is now a socket for an actual connection. Read some stuff
         auto read_bytes = recv(socket, &result, sizeof(result), 0);
         if (read_bytes < 0) {
             std::cout << "recv didnt work: " << errno << std::endl;
-            return;
-        }
-        else if (read_bytes == 0) {
+            pthread_exit(nullptr);
+        } else if (read_bytes == 0) {
             // disconnect, I think
             if (shutdown(socket, SHUT_RDWR) == -1) {
                 std::cout << "shutdown didnt work: " << errno << std::endl;
             }
             close(socket);
-            return;
+            pthread_exit(nullptr);
         }
         std::cout << result.message << std::endl;
     }
