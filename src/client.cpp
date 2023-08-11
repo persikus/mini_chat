@@ -47,7 +47,7 @@ int Client::run() {
     while (true) {
 
         std::cout << "[You] ";
-        std::cin >> input;
+        std::getline(std::cin, input);
 
         if (input == "exit") break;
 
