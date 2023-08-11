@@ -1,5 +1,4 @@
 #include "server.hpp"
-#include "shared.hpp"
 
 
 #include <sys/wait.h>
@@ -9,15 +8,12 @@
 #include <unistd.h>
 
 int main() {
-    // inet socket setup
-    auto socket_addr = sockaddr_in();
-    socket_addr.sin_family = AF_INET;
-    socket_addr.sin_port = htons(8900);
-    socket_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
+    auto server = Server(8900);
+    return server.run();
+}
 
-    const auto *addr_ptr = reinterpret_cast<const sockaddr *>(&socket_addr);
-
+int Server::run() {
 
     auto my_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -27,7 +23,7 @@ int main() {
     }
 
     // Bind port
-    if (bind(my_socket, addr_ptr, sizeof socket_addr) < 0) {
+    if (bind(my_socket, addr_ptr, sizeof socket_address) < 0) {
         std::cout << "bind didnt work: " << errno << std::endl;
         close(my_socket);
         return errno;
@@ -78,6 +74,18 @@ int main() {
     close(read_socket);
     close(my_socket);
 
-    return 0;
 }
 
+void Server::handle_client(int socket) {
+
+}
+
+void Server::broadcast(const peter::shared::my_message message) {
+
+}
+
+Server::Server(short port) {
+    socket_address.sin_family = AF_INET;
+    socket_address.sin_port = htons(8900);
+    socket_address.sin_addr.s_addr = htonl(INADDR_ANY);
+}
