@@ -43,11 +43,24 @@ int Client::run() {
         return errno;
     }
 
-    auto a_message = peter::shared::my_message{"Hello Server"};
+    std::string input;
+    while (true) {
 
-    // send message struct
-    auto bytes_sent = send(my_socket, &a_message, sizeof(a_message), 0);
-    std::cout << "sent " << bytes_sent << " bytes" << std::endl;
+        std::cout << "[You] ";
+        std::cin >> input;
+
+        if (input == "exit") break;
+
+
+        auto a_message = peter::shared::my_message{};
+        std::strcpy(a_message.message, input.c_str());
+
+
+        // send message struct
+        auto bytes_sent = send(my_socket, &a_message, sizeof(a_message), 0);
+        std::cout << "sent " << bytes_sent << " bytes" << std::endl;
+    }
+
 
     close(my_socket);
     return 0;

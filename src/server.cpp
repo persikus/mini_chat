@@ -52,17 +52,18 @@ int Server::run() {
 
 
     auto result = peter::shared::my_message{};
-    // read_socket is now a socket for an actual connection. Read some stuff
-    auto read_bytes = recv(read_socket, &result, sizeof(result), 0);
-    std::cout << "read " << read_bytes << " bytes" << std::endl;
 
+    while (true) {
 
-    if (read_bytes < 0) {
-        std::cout << "recv didnt work: " << errno << std::endl;
-        return errno;
+        // read_socket is now a socket for an actual connection. Read some stuff
+        auto read_bytes = recv(read_socket, &result, sizeof(result), 0);
+        if (read_bytes < 0) {
+            std::cout << "recv didnt work: " << errno << std::endl;
+            return errno;
+        }
+        std::cout << result.message << std::endl;
     }
 
-    std::cout << result.message << std::endl;
 
 
     if (shutdown(read_socket, SHUT_RDWR) == -1) {
