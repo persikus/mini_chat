@@ -6,7 +6,8 @@ namespace peter::shared {
 
     enum class chat_command : int {
         login = 0,
-        text  = 1
+        logout = 1,
+        text  = 2
     };
 
     struct my_message {

@@ -79,7 +79,7 @@ void *Server::handle_client(void *args) {
     return server.handle_client(socket);
 }
 
-void * Server::handle_client(int socket) {
+void *Server::handle_client(int socket) {
     auto result = peter::shared::my_message{};
     while (true) {
         // read_socket is now a socket for an actual connection. Read some stuff
@@ -87,19 +87,18 @@ void * Server::handle_client(int socket) {
         if (read_bytes < 0) {
             std::cout << "recv on " << socket << " didnt work: " << errno << std::endl;
             remove_client(socket);
-            pthread_exit(nullptr);
+            return nullptr;
         } else if (read_bytes == 0) {
-            // disconnect, I think
-            if (shutdown(socket, SHUT_RDWR) == -1) {
-                std::cerr << "shutdown didnt work: " << errno << std::endl;
-                remove_client(socket);
-            }
-            close(socket);
-            pthread_exit(nullptr);
+            // disconnect
+            std::cout << "(" << socket_owners[socket] << " left.)" << std::endl;
+            result.command = peter::shared::chat_command::logout;
+            broadcast(result, socket);
+            remove_client(socket);
+            return nullptr;
         }
         switch (result.command) {
             case peter::shared::chat_command::login: {
-                std::cout << result.message << " logged in" << std::endl;
+                std::cout << "(" << result.message << " joined.)" << std::endl;
                 client_sockets.insert(socket);
                 socket_owners[socket] = result.message;
                 broadcast(result, socket);
@@ -110,11 +109,14 @@ void * Server::handle_client(int socket) {
                 broadcast(result, socket);
                 break;
             }
+            default:
+                std::cerr << "unexpected client command " << static_cast<int>(result.command) << std::endl;
+                break;
         }
     }
 }
 
-void Server::broadcast(peter::shared::my_message& message, int except) {
+void Server::broadcast(peter::shared::my_message &message, int except) {
     std::strcpy(message.owner, socket_owners[except].c_str());
     for (const auto socket: client_sockets) {
         if (socket == except) continue;
@@ -133,6 +135,7 @@ Server::Server(short port) {
 }
 
 void Server::remove_client(int socket) {
+    close(socket);
     client_sockets.erase(socket);
     socket_owners.erase(socket);
 }

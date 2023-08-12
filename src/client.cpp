@@ -8,7 +8,6 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <chrono>
 #include <thread>
 #include <random>
 
@@ -110,7 +109,7 @@ void *Client::handle_server(int socket) {
         if (read_bytes < 0) {
             std::cerr << "recv on " << socket << " didnt work: " << errno << std::endl;
             server_gone();
-            pthread_exit(nullptr);
+            return nullptr;
         } else if (read_bytes == 0) {
             // disconnect, I think
             if (shutdown(socket, SHUT_RDWR) == -1) {
@@ -118,7 +117,7 @@ void *Client::handle_server(int socket) {
                 server_gone();
             }
             close(socket);
-            pthread_exit(nullptr);
+            return nullptr;
         }
         switch (result.command) {
             case peter::shared::chat_command::text: {
@@ -126,9 +125,12 @@ void *Client::handle_server(int socket) {
                 break;
             }
             case peter::shared::chat_command::login: {
-                std::cout << result.owner << " joined." << std::endl;
+                std::cout << "(" << result.owner << " joined.)" << std::endl;
                 break;
             }
+            case peter::shared::chat_command::logout:
+                std::cout << "(" << result.owner << " left.)" << std::endl;
+                break;
         }
     }
 }
