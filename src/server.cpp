@@ -18,9 +18,17 @@ struct thread_args {
     int socket;
 };
 
+const int enable = 1;
+
 int Server::run() {
 
     auto my_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (setsockopt(my_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        std::cerr << "setsockopt(SO_REUSEADDR) failed" << std::endl;
+    }
+    if (setsockopt(my_socket, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0) {
+        std::cerr << "setsockopt(SO_REUSEPORT) failed" << std::endl;
+    }
 
     if (my_socket < 0) {
         std::cerr << "socket create didnt work: " << errno << std::endl;
