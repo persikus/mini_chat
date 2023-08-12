@@ -14,7 +14,7 @@
 
 int main() {
     std::random_device rd;
-    std::uniform_int_distribution<short> num_range {1, 9};
+    std::uniform_int_distribution<short> num_range{1, 9};
     auto random_number = num_range(rd);
 
     auto client = Client("Peter_" + std::to_string(random_number), "127.0.0.1", 8900);
@@ -42,12 +42,12 @@ int Client::run() {
     auto my_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if (my_socket < 0) {
-        std::cout << "socket create didnt work: " << errno << std::endl;
+        std::cerr << "socket create didnt work: " << errno << std::endl;
         return errno;
     }
 
     if (connect(my_socket, addr_ptr, sizeof socket_address) < 0) {
-        std::cout << "connect failed: " << errno << std::endl;
+        std::cerr << "connect failed: " << errno << std::endl;
         close(my_socket);
         return errno;
     }
@@ -58,13 +58,13 @@ int Client::run() {
     // send message struct
     auto bytes_sent = send(my_socket, &login_message, sizeof(login_message), 0);
     if (bytes_sent < 0) {
-        std::cout << "Login didnt work, abort." << std::endl;
+        std::cerr << "Login didnt work, abort." << std::endl;
         close(my_socket);
         return errno;
     }
 
     pthread_t server_thread;
-    auto* thread_input = new thread_args{this, my_socket};
+    auto *thread_input = new thread_args{this, my_socket};
     std::cout << "give " << my_socket << std::endl;
     pthread_create(&server_thread, nullptr, handle_server, thread_input);
 
@@ -79,16 +79,14 @@ int Client::run() {
         auto a_message = peter::shared::my_message{peter::shared::chat_command::text};
         std::strcpy(a_message.message, input.c_str());
 
-
         // send message struct
         bytes_sent = send(my_socket, &a_message, sizeof(a_message), 0);
         if (bytes_sent < 0) {
-            std::cout << "Message didnt work, abort." << std::endl;
+            std::cerr << "Message didnt work, abort." << std::endl;
             close(my_socket);
             return errno;
         }
     }
-
 
     close(my_socket);
     return 0;
@@ -110,13 +108,13 @@ void *Client::handle_server(int socket) {
         // read_socket is now a socket for an actual connection. Read some stuff
         auto read_bytes = recv(socket, &result, sizeof(result), 0);
         if (read_bytes < 0) {
-            std::cout << "recv on " << socket << " didnt work: " << errno << std::endl;
+            std::cerr << "recv on " << socket << " didnt work: " << errno << std::endl;
             server_gone();
             pthread_exit(nullptr);
         } else if (read_bytes == 0) {
             // disconnect, I think
             if (shutdown(socket, SHUT_RDWR) == -1) {
-                std::cout << "shutdown didnt work: " << errno << std::endl;
+                std::cerr << "shutdown didnt work: " << errno << std::endl;
                 server_gone();
             }
             close(socket);
@@ -129,6 +127,7 @@ void *Client::handle_server(int socket) {
             }
             case peter::shared::chat_command::login: {
                 std::cout << result.owner << " joined." << std::endl;
+                break;
             }
         }
     }

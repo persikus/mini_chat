@@ -23,20 +23,20 @@ int Server::run() {
     auto my_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if (my_socket < 0) {
-        std::cout << "socket create didnt work: " << errno << std::endl;
+        std::cerr << "socket create didnt work: " << errno << std::endl;
         return errno;
     }
 
     // Bind port
     if (bind(my_socket, addr_ptr, sizeof socket_address) < 0) {
-        std::cout << "bind didnt work: " << errno << std::endl;
+        std::cerr << "bind didnt work: " << errno << std::endl;
         close(my_socket);
         return errno;
     }
 
     // Allow connections to queue up
     if (listen(my_socket, 2) == -1) {
-        std::cout << "listen didnt work: " << errno << std::endl;
+        std::cerr << "listen didnt work: " << errno << std::endl;
         perror("listen failed");
         close(my_socket);
         return errno;
@@ -56,7 +56,7 @@ int Server::run() {
             std::cout << "accept deque didnt work: " << errno << std::endl;
             break;
         }
-        std::cout << "Got one" << std::endl;
+        std::cout << "Someone connected on socket " << read_socket << std::endl;
 
         client_threads.emplace_back();
         client_sockets.insert(read_socket);
@@ -91,7 +91,7 @@ void * Server::handle_client(int socket) {
         } else if (read_bytes == 0) {
             // disconnect, I think
             if (shutdown(socket, SHUT_RDWR) == -1) {
-                std::cout << "shutdown didnt work: " << errno << std::endl;
+                std::cerr << "shutdown didnt work: " << errno << std::endl;
                 remove_client(socket);
             }
             close(socket);
@@ -108,6 +108,7 @@ void * Server::handle_client(int socket) {
             case peter::shared::chat_command::text: {
                 std::cout << "[" << socket_owners[socket] << "] " << result.message << std::endl;
                 broadcast(result, socket);
+                break;
             }
         }
     }
@@ -120,7 +121,7 @@ void Server::broadcast(peter::shared::my_message& message, int except) {
         std::cout << "send this message to " << socket << std::endl;
         auto bytes_sent = send(socket, &message, sizeof(message), 0);
         if (bytes_sent < 0) {
-            std::cout << "broadcast didnt work" << std::endl;
+            std::cerr << "broadcast didnt work" << std::endl;
         }
     }
 }
