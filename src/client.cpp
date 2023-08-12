@@ -113,16 +113,16 @@ void *Client::handle_server(int socket) {
         auto read_bytes = recv(socket, &result, sizeof(result), 0);
         if (read_bytes < 0) {
             std::cerr << "recv on " << socket << " didnt work: " << errno << std::endl;
-            server_gone();
-            return nullptr;
-        } else if (read_bytes == 0) {
-            // disconnect, I think
-            if (shutdown(socket, SHUT_RDWR) == -1) {
-                std::cerr << "shutdown didnt work: " << errno << std::endl;
-                server_gone();
-            }
+            std::cout << "Closing this chat. " << std::endl;
             close(socket);
-            return nullptr;
+            // Lazy way to deal with server disconnect and end the getline call in main thread
+            std::terminate();
+        } else if (read_bytes == 0) {
+            // disconnect
+            std::cout << "server disconnected. Closing this chat. " << std::endl;
+            close(socket);
+            // Lazy way to deal with server disconnect and end the getline call in main thread
+            std::terminate();
         }
         switch (result.command) {
             case peter::shared::chat_command::text: {
