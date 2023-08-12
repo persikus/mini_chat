@@ -106,13 +106,29 @@ void *Server::handle_client(int socket) {
         }
         switch (result.command) {
             case peter::shared::chat_command::login: {
-                std::cout << "(" << result.message << " joined.)" << std::endl;
+                // First check if chose user name is actually free.
+                // If not we send a logout signal to the client.
+                // Otherwise we broadcast its appearance.
+
+                std::cout << "Client with name " << result.owner << " wants to join" << std::endl;
+
+                if (std::find_if(socket_owners.begin(), socket_owners.end(),
+                                 [&result](const auto &p) {
+                                     return p.second == result.owner;
+                                 }) != socket_owners.end()) {
+                    result.command = peter::shared::chat_command::logout;
+                    send_to(result, socket);
+                    result.command = peter::shared::chat_command::login;
+                    break;
+                }
+                std::cout << "(" << result.owner << " joined.)" << std::endl;
                 client_sockets.insert(socket);
-                socket_owners[socket] = result.message;
-                broadcast(result, socket);
+                socket_owners[socket] = result.owner;
+                broadcast(result, -1);
                 break;
             }
             case peter::shared::chat_command::text: {
+                // Broadcast text messages
                 std::cout << "[" << socket_owners[socket] << "] " << result.message << std::endl;
                 broadcast(result, socket);
                 break;
@@ -128,12 +144,16 @@ void Server::broadcast(peter::shared::my_message &message, int except) {
     std::strncpy(message.owner, socket_owners[except].c_str(), socket_owners[except].size());
     for (const auto socket: client_sockets) {
         if (socket == except) continue;
+        send_to(message, socket);
+    }
+}
+
+void Server::send_to(peter::shared::my_message &message, int socket) {
         std::cout << "send this message to " << socket << std::endl;
         auto bytes_sent = send(socket, &message, sizeof(message), 0);
         if (bytes_sent < 0) {
-            std::cerr << "broadcast didnt work" << std::endl;
+            std::cerr << "send didnt work" << std::endl;
         }
-    }
 }
 
 Server::Server(short port) {

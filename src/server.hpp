@@ -15,6 +15,7 @@ private:
 
 
     void broadcast(peter::shared::my_message& message, int except);
+    void send_to(peter::shared::my_message& message, int socket);
 
     sockaddr_in socket_address{};
     const sockaddr *addr_ptr = reinterpret_cast<const sockaddr *>(&socket_address);

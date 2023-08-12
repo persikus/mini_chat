@@ -14,7 +14,7 @@
 
 int main() {
     std::random_device rd;
-    std::uniform_int_distribution<short> num_range{1, 9};
+    std::uniform_int_distribution<short> num_range{1, 5};
     auto random_number = num_range(rd);
 
     auto client = Client("Peter_" + std::to_string(random_number), "127.0.0.1", 8900);
@@ -57,7 +57,7 @@ int Client::run() {
     }
 
     auto login_message = peter::shared::my_message{peter::shared::chat_command::login};
-    std::strncpy(login_message.message, name.c_str(), name.size());
+    std::strncpy(login_message.owner, name.c_str(), name.size());
 
     // send message struct
     auto bytes_sent = send(my_socket, &login_message, sizeof(login_message), 0);
@@ -69,7 +69,6 @@ int Client::run() {
 
     pthread_t server_thread;
     auto *thread_input = new thread_args{this, my_socket};
-    std::cout << "give " << my_socket << std::endl;
     pthread_create(&server_thread, nullptr, handle_server, thread_input);
 
 
@@ -130,12 +129,21 @@ void *Client::handle_server(int socket) {
                 break;
             }
             case peter::shared::chat_command::login: {
-                std::cout << "(" << result.owner << " joined.)" << std::endl;
+                if (result.owner == name) {
+                    std::cout << "Welcome " + name << std::endl;
+                } else {
+                    std::cout << "(" << result.owner << " joined.)" << std::endl;
+                }
                 break;
             }
-            case peter::shared::chat_command::logout:
-                std::cout << "(" << result.owner << " left.)" << std::endl;
+            case peter::shared::chat_command::logout: {
+                if (result.owner == name) {
+                    std::cerr << "User name \"" << name << "\" already in use. Try another one" << std::endl;
+                } else {
+                    std::cout << "(" << result.owner << " left.)" << std::endl;
+                }
                 break;
+            }
         }
     }
 }
