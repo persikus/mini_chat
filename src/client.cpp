@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <thread>
 #include <random>
+#include <csignal>
 
 int main() {
     std::random_device rd;
@@ -28,6 +29,10 @@ Client::Client(std::string &&name, std::string &&ip, short port) : name(name) {
     socket_address.sin_addr.s_addr = htonl(INADDR_ANY);
     // Put URL into the socket addr
     auto res = inet_pton(AF_INET, "127.0.0.1", &socket_address.sin_addr);
+    if (res < 0) {
+        std::cerr << "url doesnt look quite right: " << errno << std::endl;
+        std::raise(SIGABRT);
+    }
 }
 
 struct thread_args {
@@ -52,7 +57,7 @@ int Client::run() {
     }
 
     auto login_message = peter::shared::my_message{peter::shared::chat_command::login};
-    std::strcpy(login_message.message, name.c_str());
+    std::strncpy(login_message.message, name.c_str(), name.size());
 
     // send message struct
     auto bytes_sent = send(my_socket, &login_message, sizeof(login_message), 0);
@@ -76,7 +81,7 @@ int Client::run() {
         if (input == "exit") break;
 
         auto a_message = peter::shared::my_message{peter::shared::chat_command::text};
-        std::strcpy(a_message.message, input.c_str());
+        std::strncpy(a_message.message, input.c_str(), name.size());
 
         // send message struct
         bytes_sent = send(my_socket, &a_message, sizeof(a_message), 0);

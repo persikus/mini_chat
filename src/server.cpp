@@ -117,7 +117,7 @@ void *Server::handle_client(int socket) {
 }
 
 void Server::broadcast(peter::shared::my_message &message, int except) {
-    std::strcpy(message.owner, socket_owners[except].c_str());
+    std::strncpy(message.owner, socket_owners[except].c_str(), socket_owners[except].size());
     for (const auto socket: client_sockets) {
         if (socket == except) continue;
         std::cout << "send this message to " << socket << std::endl;
