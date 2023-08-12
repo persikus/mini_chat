@@ -102,6 +102,7 @@ void * Server::handle_client(int socket) {
                 std::cout << result.message << " logged in" << std::endl;
                 client_sockets.insert(socket);
                 socket_owners[socket] = result.message;
+                broadcast(result, socket);
                 break;
             }
             case peter::shared::chat_command::text: {

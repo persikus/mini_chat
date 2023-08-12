@@ -127,8 +127,8 @@ void *Client::handle_server(int socket) {
                 std::cout << result.owner << ": " << result.message << std::endl;
                 break;
             }
-            default: {
-                std::cout << "Server got confused and sent command " << static_cast<int>(result.command) << std::endl;
+            case peter::shared::chat_command::login: {
+                std::cout << result.owner << " joined." << std::endl;
             }
         }
     }
