@@ -1,15 +1,31 @@
 #include "server.hpp"
 
-
+#include <charconv>
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <iostream>
 #include <unistd.h>
 
-int main() {
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        std::cerr << "Not exactly 1 argument" << std::endl;
+        std::cout << "./server <port>" << std::endl;
+        return EXIT_FAILURE;
+    }
 
-    auto server = Server(8900);
+    std::string_view port_str(argv[1]);
+    short port;
+    // Not sure why I bothered using string views, but here I am...
+    const auto conv_result = std::from_chars(port_str.begin(), port_str.end(), port);
+    if (conv_result.ec == std::errc::invalid_argument
+        || conv_result.ec == std::errc::result_out_of_range
+        || conv_result.ptr != port_str.end()) {
+
+        std::cerr << port_str << " is no valid port" << std::endl;
+    }
+
+    auto server = Server(port);
     return server.run();
 }
 
@@ -149,11 +165,11 @@ void Server::broadcast(peter::shared::my_message &message, int except) {
 }
 
 void Server::send_to(peter::shared::my_message &message, int socket) {
-        std::cout << "send this message to " << socket << std::endl;
-        auto bytes_sent = send(socket, &message, sizeof(message), 0);
-        if (bytes_sent < 0) {
-            std::cerr << "send didnt work" << std::endl;
-        }
+    std::cout << "send this message to " << socket << std::endl;
+    auto bytes_sent = send(socket, &message, sizeof(message), 0);
+    if (bytes_sent < 0) {
+        std::cerr << "send didnt work" << std::endl;
+    }
 }
 
 Server::Server(short port) {

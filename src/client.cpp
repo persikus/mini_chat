@@ -1,7 +1,7 @@
 #include "client.hpp"
 #include "shared.hpp"
 
-
+#include <charconv>
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <iostream>
@@ -12,18 +12,51 @@
 #include <random>
 #include <csignal>
 
-int main() {
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        std::cerr << "Not exactly 2 arguments" << std::endl;
+        std::cout << "./client <username> <ip>:<port>" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    std::string_view username = argv[1];
+    std::string_view input(argv[2]);
+    const auto colon_pos = input.find(':');
+    if (colon_pos == -1) {
+        std::cerr << "No colon ':' found" << std::endl;
+        std::cout << "./client <ip>:<port>" << std::endl;
+        return EXIT_FAILURE;
+    }
+    if (colon_pos == 0 || colon_pos == input.length() - 1) {
+        std::cerr << "IP or port are empty" << std::endl;
+        std::cout << "./client <ip>:<port>" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    const auto ip_str = input.substr(0, colon_pos);
+    const auto port_str = input.substr(colon_pos + 1, input.length() - colon_pos);
+
+    int port;
+    // Not sure why I bothered using string views, but here I am...
+    const auto conv_result = std::from_chars(port_str.begin(), port_str.end(), port);
+    if (conv_result.ec == std::errc::invalid_argument
+        || conv_result.ec == std::errc::result_out_of_range
+        || conv_result.ptr != port_str.end()) {
+
+        std::cerr << port_str << " is no valid port" << std::endl;
+    }
+
     std::random_device rd;
     std::uniform_int_distribution<short> num_range{1, 5};
     auto random_number = num_range(rd);
 
-    auto client = Client("Peter_" + std::to_string(random_number), "127.0.0.1", 8900);
+    auto client = Client(username, ip_str, port);
     client.run();
 
     return 0;
 }
 
-Client::Client(std::string &&name, std::string &&ip, short port) : name(name) {
+Client::Client(std::string_view name, std::string_view ip, short port) : name(name) {
     socket_address.sin_family = AF_INET;
     socket_address.sin_port = htons(port);
     socket_address.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -77,7 +110,10 @@ int Client::run() {
 
         std::getline(std::cin, input);
 
-        if (input == "exit") break;
+        if (input == "exit") {
+            exit = true;
+            break;
+        }
 
         auto a_message = peter::shared::my_message{peter::shared::chat_command::text};
         std::strncpy(a_message.message, input.c_str(), name.size());
@@ -111,7 +147,9 @@ void *Client::handle_server(int socket) {
         // read_socket is now a socket for an actual connection. Read some stuff
         auto read_bytes = recv(socket, &result, sizeof(result), 0);
         if (read_bytes < 0) {
-            std::cerr << "recv on " << socket << " didnt work: " << errno << std::endl;
+            if (!exit) {
+                std::cerr << "recv on " << socket << " didnt work: " << errno << std::endl;
+            }
             std::cout << "Closing this chat. " << std::endl;
             close(socket);
             // Lazy way to deal with server disconnect and end the getline call in main thread
@@ -130,7 +168,7 @@ void *Client::handle_server(int socket) {
             }
             case peter::shared::chat_command::login: {
                 if (result.owner == name) {
-                    std::cout << "Welcome " + name << std::endl;
+                    std::cout << "Welcome " + name << ". Enter 'exit' to leave the chat." << std::endl;
                 } else {
                     std::cout << "(" << result.owner << " joined.)" << std::endl;
                 }
@@ -139,6 +177,7 @@ void *Client::handle_server(int socket) {
             case peter::shared::chat_command::logout: {
                 if (result.owner == name) {
                     std::cerr << "User name \"" << name << "\" already in use. Try another one" << std::endl;
+                    std::terminate();
                 } else {
                     std::cout << "(" << result.owner << " left.)" << std::endl;
                 }
