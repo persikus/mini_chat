@@ -174,7 +174,7 @@ void Server::send_to(peter::shared::my_message &message, int socket) {
 
 Server::Server(short port) {
     socket_address.sin_family = AF_INET;
-    socket_address.sin_port = htons(8900);
+    socket_address.sin_port = htons(port);
     socket_address.sin_addr.s_addr = htonl(INADDR_ANY);
 }
 
